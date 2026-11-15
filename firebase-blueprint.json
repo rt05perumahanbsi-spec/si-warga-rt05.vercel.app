@@ -1,0 +1,592 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Akun pengurus RT 05 Blok E yang memiliki hak akses admin.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID pengurus"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200,
+          "description": "Email Google pengurus RT"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"],
+          "description": "Peran akses pengurus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pendaftaran admin (server timestamp)"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "CitizenHousehold": {
+      "title": "CitizenHousehold",
+      "description": "Data kepala keluarga dan anggota keluarga warga RT 05 Blok E (tanpa file gambar base64 besar).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID unik dokumen keluarga"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID pemilik data KK"
+        },
+        "nomorKk": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "Nomor Kartu Keluarga"
+        },
+        "namaKepalaKeluarga": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Nama lengkap Kepala Keluarga"
+        },
+        "nomorHp": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Nomor HP / WhatsApp keluarga"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Alamat email opsional"
+        },
+        "gang": {
+          "type": "string",
+          "enum": [
+            "Gg Utama",
+            "Gg Bhineka",
+            "Gg Damai",
+            "Gg Walet",
+            "Gg Jalak suren",
+            "Gg Cendrawasih"
+          ],
+          "description": "Gang resmi wilayah RT 05 Blok E"
+        },
+        "nomorRumah": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Blok dan nomor rumah"
+        },
+        "statusHunian": {
+          "type": "string",
+          "enum": ["Milik Sendiri", "Kontrak / Sewa", "Rumah Singgah / Kerabat"],
+          "description": "Status kepemilikan hunian"
+        },
+        "statusKtp": {
+          "type": "string",
+          "enum": ["KTP RT 05 (Warga Tetap)", "KTP Luar (Warga Domisili)"],
+          "description": "Status administrasi KTP"
+        },
+        "tahunTinggal": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Tahun mulai tinggal"
+        },
+        "jumlahKendaraan": {
+          "type": "object",
+          "description": "Jumlah kendaraan motor dan mobil"
+        },
+        "anggotaKeluarga": {
+          "type": "array",
+          "description": "Daftar anggota keluarga dalam KK (maksimal 20 orang)"
+        },
+        "hasFotoKtp": {
+          "type": "boolean",
+          "description": "Penanda apakah lampiran KTP tersimpan"
+        },
+        "hasFotoKk": {
+          "type": "boolean",
+          "description": "Penanda apakah lampiran KK tersimpan"
+        },
+        "diverifikasiRt": {
+          "type": "boolean",
+          "description": "Status verifikasi oleh pengurus RT"
+        },
+        "tanggalUpdate": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Tanggal pemutakhiran format tampilan"
+        },
+        "catatanKhusus": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Catatan khusus keluarga"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembuatan"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "nomorKk",
+        "namaKepalaKeluarga",
+        "nomorHp",
+        "gang",
+        "nomorRumah",
+        "statusHunian",
+        "statusKtp",
+        "tahunTinggal",
+        "jumlahKendaraan",
+        "anggotaKeluarga",
+        "hasFotoKtp",
+        "hasFotoKk",
+        "diverifikasiRt",
+        "tanggalUpdate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CitizenAttachment": {
+      "title": "CitizenAttachment",
+      "description": "Lampiran terkompresi foto KTP atau KK milik satu dokumen keluarga.",
+      "type": "object",
+      "properties": {
+        "citizenId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID keluarga induk"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID pemilik lampiran"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["ktp", "kk"],
+          "description": "Jenis lampiran dokumen"
+        },
+        "dataUrl": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 550000,
+          "description": "Data URL gambar JPEG terkompresi"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan lampiran"
+        }
+      },
+      "required": ["citizenId", "ownerUid", "kind", "dataUrl", "updatedAt"]
+    },
+    "LetterRequest": {
+      "title": "LetterRequest",
+      "description": "Permohonan surat pengantar RT 05 Blok E.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID unik permohonan surat"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID pemohon surat"
+        },
+        "nomorSurat": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Nomor surat resmi RT"
+        },
+        "keluargaId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "ID keluarga terkait"
+        },
+        "namaPemohon": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Nama lengkap pemohon"
+        },
+        "nikPemohon": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "NIK pemohon"
+        },
+        "nomorHpPemohon": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Nomor WhatsApp / HP pemohon untuk notifikasi status selesai"
+        },
+        "whatsappNotifiedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Waktu notifikasi WhatsApp dikirim"
+        },
+        "whatsappNotificationStatus": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Status pengiriman notifikasi WhatsApp"
+        },
+        "gang": {
+          "type": "string",
+          "enum": [
+            "Gg Utama",
+            "Gg Bhineka",
+            "Gg Damai",
+            "Gg Walet",
+            "Gg Jalak suren",
+            "Gg Cendrawasih"
+          ],
+          "description": "Gang tempat tinggal pemohon"
+        },
+        "nomorRumah": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Nomor rumah pemohon"
+        },
+        "keperluan": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "Keperluan pengurusan surat"
+        },
+        "jenisSurat": {
+          "type": "string",
+          "enum": [
+            "Surat Pengantar KTP / KK",
+            "Surat Keterangan Domisili",
+            "Surat Keterangan Usaha",
+            "Surat Keterangan Tidak Mampu",
+            "Surat Pengantar Nikah",
+            "Surat Keterangan Kematian / Kelahiran",
+            "Lainnya"
+          ],
+          "description": "Kategori jenis surat pengantar"
+        },
+        "tanggalPengajuan": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Tanggal pengajuan"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Menunggu Verifikasi", "Disetujui RT", "Selesai"],
+          "description": "Status proses pengajuan surat"
+        },
+        "keteranganTambahan": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Keterangan tambahan opsional"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembuatan"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "keluargaId",
+        "namaPemohon",
+        "gang",
+        "nomorRumah",
+        "keperluan",
+        "jenisSurat",
+        "tanggalPengajuan",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkProgram": {
+      "title": "WorkProgram",
+      "description": "Program kerja prioritas RT 05 Blok E.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID program kerja"
+        },
+        "judul": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Judul program kerja"
+        },
+        "deskripsi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Deskripsi program kerja"
+        },
+        "kategori": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Kategori program"
+        },
+        "ikon": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Nama ikon UI"
+        },
+        "prioritas": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Label prioritas"
+        },
+        "jumlahDukungan": {
+          "type": "integer",
+          "description": "Total dukungan warga"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembuatan"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan"
+        }
+      },
+      "required": [
+        "id",
+        "judul",
+        "deskripsi",
+        "kategori",
+        "ikon",
+        "prioritas",
+        "jumlahDukungan",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProgramFeedback": {
+      "title": "ProgramFeedback",
+      "description": "Saran dan masukan warga untuk program kerja prioritas.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID unik saran"
+        },
+        "programId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID program kerja induk"
+        },
+        "authorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID pengirim saran"
+        },
+        "namaWarga": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Nama tampilan warga"
+        },
+        "gang": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Gang tempat tinggal warga"
+        },
+        "pesan": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800,
+          "description": "Isi saran warga"
+        },
+        "tanggal": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Tanggal kirim saran"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembuatan"
+        }
+      },
+      "required": [
+        "id",
+        "programId",
+        "authorUid",
+        "namaWarga",
+        "gang",
+        "pesan",
+        "tanggal",
+        "createdAt"
+      ]
+    },
+    "CitizenStatsSummary": {
+      "title": "CitizenStatsSummary",
+      "description": "Rekap statistik agregat non-PII untuk tampilan publik demografi RT 05.",
+      "type": "object",
+      "properties": {
+        "totalKk": {
+          "type": "integer",
+          "description": "Total kepala keluarga"
+        },
+        "totalJiwa": {
+          "type": "integer",
+          "description": "Total jiwa terdaftar"
+        },
+        "totalLaki": {
+          "type": "integer",
+          "description": "Total warga laki-laki"
+        },
+        "totalPerempuan": {
+          "type": "integer",
+          "description": "Total warga perempuan"
+        },
+        "totalKtpRt05": {
+          "type": "integer",
+          "description": "Jumlah KK ber-KTP RT 05"
+        },
+        "totalDomisili": {
+          "type": "integer",
+          "description": "Jumlah KK domisili luar"
+        },
+        "gangCounts": {
+          "type": "object",
+          "description": "Agregat jumlah KK dan jiwa per gang"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan statistik"
+        }
+      },
+      "required": [
+        "totalKk",
+        "totalJiwa",
+        "totalLaki",
+        "totalPerempuan",
+        "totalKtpRt05",
+        "totalDomisili",
+        "gangCounts",
+        "updatedAt"
+      ]
+    },
+    "PortalSettings": {
+      "title": "PortalSettings",
+      "description": "Pengaturan tampilan portal oleh Pengurus RT (buka/tutup kotak pemutakhiran data warga).",
+      "type": "object",
+      "properties": {
+        "showUpdateCitizenBox": {
+          "type": "boolean",
+          "description": "Apakah kotak/tombol mutakhirkan data warga ditampilkan ke publik"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan pengaturan"
+        }
+      },
+      "required": ["showUpdateCitizenBox", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminUid}": {
+      "schema": {
+        "$ref": "#/entities/AdminUser"
+      },
+      "description": "Daftar UID pengurus RT yang memiliki hak admin penuh."
+    },
+    "/citizens/{citizenId}": {
+      "schema": {
+        "$ref": "#/entities/CitizenHousehold"
+      },
+      "description": "Koleksi data kepala keluarga dan anggota keluarga RT 05 Blok E."
+    },
+    "/citizens/{citizenId}/attachments/{attachmentId}": {
+      "schema": {
+        "$ref": "#/entities/CitizenAttachment"
+      },
+      "description": "Subkoleksi lampiran terkompresi foto KTP dan Kartu Keluarga."
+    },
+    "/letters/{letterId}": {
+      "schema": {
+        "$ref": "#/entities/LetterRequest"
+      },
+      "description": "Koleksi permohonan surat pengantar warga RT 05 Blok E."
+    },
+    "/programs/{programId}": {
+      "schema": {
+        "$ref": "#/entities/WorkProgram"
+      },
+      "description": "Koleksi 4 program kerja prioritas RT 05 Blok E."
+    },
+    "/programs/{programId}/feedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/ProgramFeedback"
+      },
+      "description": "Subkoleksi saran dan masukan warga per program kerja."
+    },
+    "/citizenStats/{statId}": {
+      "schema": {
+        "$ref": "#/entities/CitizenStatsSummary"
+      },
+      "description": "Dokumen agregat statistik non-PII RT 05 Blok E."
+    },
+    "/portalConfig/{configId}": {
+      "schema": {
+        "$ref": "#/entities/PortalSettings"
+      },
+      "description": "Pengaturan visibilitas kotak mutakhirkan data warga oleh pengurus."
+    }
+  }
+}

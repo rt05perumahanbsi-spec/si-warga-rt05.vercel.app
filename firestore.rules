@@ -1,0 +1,372 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() &&
+        request.auth.token.email == 'rt05perumahanbsi@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+        (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidGang(gang) {
+      return gang is string && gang in [
+        'Gg Utama',
+        'Gg Bhineka',
+        'Gg Damai',
+        'Gg Walet',
+        'Gg Jalak suren',
+        'Gg Cendrawasih'
+      ];
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'role', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.role == 'admin' &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidCitizen(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'nomorKk', 'namaKepalaKeluarga', 'nomorHp',
+          'gang', 'nomorRumah', 'statusHunian', 'statusKtp', 'tahunTinggal',
+          'jumlahKendaraan', 'anggotaKeluarga', 'hasFotoKtp', 'hasFotoKk',
+          'diverifikasiRt', 'tanggalUpdate', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerUid', 'nomorKk', 'namaKepalaKeluarga', 'nomorHp',
+          'email', 'gang', 'nomorRumah', 'statusHunian', 'statusKtp',
+          'tahunTinggal', 'jumlahKendaraan', 'anggotaKeluarga', 'hasFotoKtp',
+          'hasFotoKk', 'diverifikasiRt', 'tanggalUpdate', 'catatanKhusus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.nomorKk is string && data.nomorKk.size() >= 1 && data.nomorKk.size() <= 32 &&
+        data.namaKepalaKeluarga is string && data.namaKepalaKeluarga.size() >= 1 && data.namaKepalaKeluarga.size() <= 120 &&
+        data.nomorHp is string && data.nomorHp.size() <= 32 &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+        isValidGang(data.gang) &&
+        data.nomorRumah is string && data.nomorRumah.size() >= 1 && data.nomorRumah.size() <= 64 &&
+        data.statusHunian is string && data.statusHunian in ['Milik Sendiri', 'Kontrak / Sewa', 'Rumah Singgah / Kerabat'] &&
+        data.statusKtp is string && data.statusKtp in ['KTP RT 05 (Warga Tetap)', 'KTP Luar (Warga Domisili)'] &&
+        data.tahunTinggal is string && data.tahunTinggal.size() <= 40 &&
+        data.jumlahKendaraan is map &&
+        data.jumlahKendaraan.keys().hasAll(['motor', 'mobil']) &&
+        data.jumlahKendaraan.keys().hasOnly(['motor', 'mobil']) &&
+        data.jumlahKendaraan.motor is int && data.jumlahKendaraan.motor >= 0 && data.jumlahKendaraan.motor <= 50 &&
+        data.jumlahKendaraan.mobil is int && data.jumlahKendaraan.mobil >= 0 && data.jumlahKendaraan.mobil <= 50 &&
+        data.anggotaKeluarga is list && data.anggotaKeluarga.size() <= 20 &&
+        (data.anggotaKeluarga.size() == 0 || data.anggotaKeluarga[0] is map) &&
+        data.hasFotoKtp is bool &&
+        data.hasFotoKk is bool &&
+        data.diverifikasiRt is bool &&
+        data.tanggalUpdate is string && data.tanggalUpdate.size() <= 32 &&
+        (!('catatanKhusus' in data) || (data.catatanKhusus is string && data.catatanKhusus.size() <= 500)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAttachment(data, citizenId, attachmentId) {
+      return data.keys().hasAll(['citizenId', 'ownerUid', 'kind', 'dataUrl', 'updatedAt']) &&
+        data.keys().hasOnly(['citizenId', 'ownerUid', 'kind', 'dataUrl', 'updatedAt']) &&
+        data.citizenId == citizenId &&
+        isValidId(data.ownerUid) &&
+        data.kind == attachmentId &&
+        data.kind in ['ktp', 'kk'] &&
+        data.dataUrl is string && data.dataUrl.size() >= 10 && data.dataUrl.size() <= 550000 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidLetter(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'keluargaId', 'namaPemohon', 'gang', 'nomorRumah',
+          'keperluan', 'jenisSurat', 'tanggalPengajuan', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerUid', 'nomorSurat', 'keluargaId', 'namaPemohon', 'nikPemohon',
+          'nomorHpPemohon', 'whatsappNotifiedAt', 'whatsappNotificationStatus',
+          'gang', 'nomorRumah', 'keperluan', 'jenisSurat', 'tanggalPengajuan',
+          'status', 'keteranganTambahan', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        (!('nomorSurat' in data) || (data.nomorSurat is string && data.nomorSurat.size() <= 80)) &&
+        data.keluargaId is string && data.keluargaId.size() <= 128 &&
+        data.namaPemohon is string && data.namaPemohon.size() >= 1 && data.namaPemohon.size() <= 120 &&
+        (!('nikPemohon' in data) || (data.nikPemohon is string && data.nikPemohon.size() <= 32)) &&
+        (!('nomorHpPemohon' in data) || (data.nomorHpPemohon is string && data.nomorHpPemohon.size() <= 32)) &&
+        (!('whatsappNotifiedAt' in data) || (data.whatsappNotifiedAt is string && data.whatsappNotifiedAt.size() <= 64)) &&
+        (!('whatsappNotificationStatus' in data) || (data.whatsappNotificationStatus is string && data.whatsappNotificationStatus.size() <= 80)) &&
+        isValidGang(data.gang) &&
+        data.nomorRumah is string && data.nomorRumah.size() >= 1 && data.nomorRumah.size() <= 64 &&
+        data.keperluan is string && data.keperluan.size() >= 1 && data.keperluan.size() <= 300 &&
+        data.jenisSurat is string && data.jenisSurat in [
+          'Surat Pengantar KTP / KK',
+          'Surat Keterangan Domisili',
+          'Surat Keterangan Usaha',
+          'Surat Keterangan Tidak Mampu',
+          'Surat Pengantar Nikah',
+          'Surat Keterangan Kematian / Kelahiran',
+          'Lainnya'
+        ] &&
+        data.tanggalPengajuan is string && data.tanggalPengajuan.size() <= 32 &&
+        data.status is string && data.status in ['Menunggu Verifikasi', 'Disetujui RT', 'Selesai'] &&
+        (!('keteranganTambahan' in data) || (data.keteranganTambahan is string && data.keteranganTambahan.size() <= 500)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProgram(data) {
+      return data.keys().hasAll([
+          'id', 'judul', 'deskripsi', 'kategori', 'ikon', 'prioritas',
+          'jumlahDukungan', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'judul', 'deskripsi', 'kategori', 'ikon', 'prioritas',
+          'jumlahDukungan', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.judul is string && data.judul.size() >= 1 && data.judul.size() <= 160 &&
+        data.deskripsi is string && data.deskripsi.size() >= 1 && data.deskripsi.size() <= 1000 &&
+        data.kategori is string && data.kategori.size() >= 1 && data.kategori.size() <= 80 &&
+        data.ikon is string && data.ikon.size() <= 40 &&
+        data.prioritas is string && data.prioritas.size() <= 40 &&
+        data.jumlahDukungan is int && data.jumlahDukungan >= 0 && data.jumlahDukungan <= 1000000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidFeedback(data, programId, feedbackId) {
+      return data.keys().hasAll([
+          'id', 'programId', 'authorUid', 'namaWarga', 'gang', 'pesan', 'tanggal', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'programId', 'authorUid', 'namaWarga', 'gang', 'pesan', 'tanggal', 'createdAt'
+        ]) &&
+        data.id == feedbackId &&
+        data.programId == programId &&
+        isValidId(data.authorUid) &&
+        data.namaWarga is string && data.namaWarga.size() >= 1 && data.namaWarga.size() <= 100 &&
+        data.gang is string && data.gang.size() >= 1 && data.gang.size() <= 40 &&
+        data.pesan is string && data.pesan.size() >= 1 && data.pesan.size() <= 800 &&
+        data.tanggal is string && data.tanggal.size() <= 32 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidCitizenStats(data) {
+      return data.keys().hasAll([
+          'totalKk', 'totalJiwa', 'totalLaki', 'totalPerempuan',
+          'totalKtpRt05', 'totalDomisili', 'gangCounts', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'totalKk', 'totalJiwa', 'totalLaki', 'totalPerempuan',
+          'totalKtpRt05', 'totalDomisili', 'gangCounts', 'updatedAt'
+        ]) &&
+        data.totalKk is int && data.totalKk >= 0 && data.totalKk <= 50000 &&
+        data.totalJiwa is int && data.totalJiwa >= 0 && data.totalJiwa <= 200000 &&
+        data.totalLaki is int && data.totalLaki >= 0 && data.totalLaki <= 200000 &&
+        data.totalPerempuan is int && data.totalPerempuan >= 0 && data.totalPerempuan <= 200000 &&
+        data.totalKtpRt05 is int && data.totalKtpRt05 >= 0 && data.totalKtpRt05 <= 50000 &&
+        data.totalDomisili is int && data.totalDomisili >= 0 && data.totalDomisili <= 50000 &&
+        data.gangCounts is map &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPortalSettings(data) {
+      return data.keys().hasAll(['showUpdateCitizenBox', 'updatedAt']) &&
+        data.keys().hasOnly(['showUpdateCitizenBox', 'updatedAt']) &&
+        data.showUpdateCitizenBox is bool &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- ADMINS ---
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isAdmin() || (isVerifiedUser() && request.auth.uid == adminUid));
+      allow list: if isAdmin();
+      allow create: if isBootstrappedAdmin() && isValidId(adminUid) && isValidAdminUser(incoming()) && incoming().uid == adminUid && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isBootstrappedAdmin() && isValidId(adminUid);
+    }
+
+    // --- CITIZENS (PII ISOLATED) ---
+    match /citizens/{citizenId} {
+      allow get: if isValidId(citizenId) && (isAdmin() || (isVerifiedUser() && existing().ownerUid == request.auth.uid));
+      allow list: if isAdmin() || (isVerifiedUser() && resource.data.ownerUid == request.auth.uid);
+      allow create: if isVerifiedUser() &&
+        isValidId(citizenId) &&
+        isValidCitizen(incoming()) &&
+        incoming().id == citizenId &&
+        (isAdmin() || (incoming().ownerUid == request.auth.uid && incoming().diverifikasiRt == false)) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(citizenId) &&
+        isValidCitizen(incoming()) &&
+        incoming().id == citizenId &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'nomorKk', 'namaKepalaKeluarga', 'nomorHp', 'email', 'gang',
+            'nomorRumah', 'statusHunian', 'statusKtp', 'tahunTinggal',
+            'jumlahKendaraan', 'anggotaKeluarga', 'hasFotoKtp', 'hasFotoKk',
+            'diverifikasiRt', 'tanggalUpdate', 'catatanKhusus', 'updatedAt'
+          ])) ||
+          (existing().ownerUid == request.auth.uid &&
+           incoming().diverifikasiRt == existing().diverifikasiRt &&
+           incoming().diff(existing()).affectedKeys().hasOnly([
+            'nomorKk', 'namaKepalaKeluarga', 'nomorHp', 'email', 'gang',
+            'nomorRumah', 'statusHunian', 'statusKtp', 'tahunTinggal',
+            'jumlahKendaraan', 'anggotaKeluarga', 'hasFotoKtp', 'hasFotoKk',
+            'tanggalUpdate', 'catatanKhusus', 'updatedAt'
+          ]))
+        );
+      allow delete: if isVerifiedUser() && isValidId(citizenId) && (isAdmin() || existing().ownerUid == request.auth.uid);
+
+      match /attachments/{attachmentId} {
+        allow get: if isValidId(citizenId) &&
+          attachmentId in ['ktp', 'kk'] &&
+          (isAdmin() || (isVerifiedUser() && existing().ownerUid == request.auth.uid && get(/databases/$(database)/documents/citizens/$(citizenId)).data.ownerUid == request.auth.uid));
+        allow list: if isAdmin() || (isVerifiedUser() && resource.data.ownerUid == request.auth.uid);
+        allow create, update: if isVerifiedUser() &&
+          isValidId(citizenId) &&
+          attachmentId in ['ktp', 'kk'] &&
+          isValidAttachment(incoming(), citizenId, attachmentId) &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/citizens/$(citizenId)) &&
+          (isAdmin() || (incoming().ownerUid == request.auth.uid && get(/databases/$(database)/documents/citizens/$(citizenId)).data.ownerUid == request.auth.uid));
+        allow delete: if isVerifiedUser() &&
+          isValidId(citizenId) &&
+          attachmentId in ['ktp', 'kk'] &&
+          (isAdmin() || (existing().ownerUid == request.auth.uid && get(/databases/$(database)/documents/citizens/$(citizenId)).data.ownerUid == request.auth.uid));
+      }
+    }
+
+    // --- LETTER REQUESTS (PII ISOLATED) ---
+    match /letters/{letterId} {
+      allow get: if isValidId(letterId) && (isAdmin() || (isVerifiedUser() && existing().ownerUid == request.auth.uid));
+      allow list: if isAdmin() || (isVerifiedUser() && resource.data.ownerUid == request.auth.uid);
+      allow create: if isVerifiedUser() &&
+        isValidId(letterId) &&
+        isValidLetter(incoming()) &&
+        incoming().id == letterId &&
+        (isAdmin() || (incoming().ownerUid == request.auth.uid && incoming().status == 'Menunggu Verifikasi')) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(letterId) &&
+        isValidLetter(incoming()) &&
+        incoming().id == letterId &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'nomorSurat', 'keteranganTambahan', 'whatsappNotifiedAt', 'whatsappNotificationStatus', 'updatedAt'
+          ])) ||
+          (existing().ownerUid == request.auth.uid &&
+           existing().status == 'Menunggu Verifikasi' &&
+           incoming().status == 'Menunggu Verifikasi' &&
+           incoming().diff(existing()).affectedKeys().hasOnly([
+            'keperluan', 'keteranganTambahan', 'updatedAt'
+          ]))
+        );
+      allow delete: if isVerifiedUser() && isValidId(letterId) && isAdmin();
+    }
+
+    // --- PUBLIC WORK PROGRAMS & FEEDBACK ---
+    match /programs/{programId} {
+      allow get, list: if true;
+      allow create: if isAdmin() &&
+        isValidId(programId) &&
+        isValidProgram(incoming()) &&
+        incoming().id == programId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(programId) &&
+        isValidProgram(incoming()) &&
+        incoming().id == programId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'judul', 'deskripsi', 'kategori', 'ikon', 'prioritas', 'jumlahDukungan', 'updatedAt'
+          ])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['jumlahDukungan', 'updatedAt']) &&
+           incoming().jumlahDukungan == existing().jumlahDukungan + 1)
+        );
+      allow delete: if isAdmin() && isValidId(programId);
+
+      match /feedback/{feedbackId} {
+        allow get, list: if true;
+        allow create: if isVerifiedUser() &&
+          isValidId(programId) &&
+          isValidId(feedbackId) &&
+          exists(/databases/$(database)/documents/programs/$(programId)) &&
+          isValidFeedback(incoming(), programId, feedbackId) &&
+          incoming().authorUid == request.auth.uid &&
+          incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isVerifiedUser() &&
+          isValidId(programId) &&
+          isValidId(feedbackId) &&
+          (isAdmin() || existing().authorUid == request.auth.uid);
+      }
+    }
+
+    // --- NON-PII AGGREGATE STATS ---
+    match /citizenStats/{statId} {
+      allow get: if statId == 'summary';
+      allow list: if false;
+      allow create, update: if isAdmin() &&
+        statId == 'summary' &&
+        isValidCitizenStats(incoming()) &&
+        incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // --- PORTAL SETTINGS (SHOW/HIDE UPDATE CITIZEN BOX) ---
+    match /portalConfig/{configId} {
+      allow get: if configId == 'settings';
+      allow list: if false;
+      allow create, update: if isAdmin() &&
+        configId == 'settings' &&
+        isValidPortalSettings(incoming()) &&
+        incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+  }
+}

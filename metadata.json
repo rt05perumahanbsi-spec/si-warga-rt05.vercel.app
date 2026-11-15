@@ -1,0 +1,8 @@
+{
+  "name": "SI-WARGA 05: Sistem Informasi RT 05 Blok E Bumi Setia Insani",
+  "description": "Aplikasi digital warga RT 05 Blok E untuk pemutakhiran data keluarga, upload berkas KTP & KK, permohonan surat pengantar online, serta partisipasi program kerja lingkungan.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
